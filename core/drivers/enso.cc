@@ -1,6 +1,7 @@
 
 
 #include "enso.h"
+#include <arpa/inet.h>
 
 using enso::Device;
 using enso::RxPipe;
@@ -78,7 +79,7 @@ int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 		if(!bess_pkt){
 			break;
 		}
-		bess::utils::CopyInlined(bess_pkt->append(pkt_len), enso_pkt, pkt_len, true);
+		bess::utils::CopyInlined(bess_pkt->append(pkt_len), enso_pkt, pkt_len, true);	// TODO: replace with enso::memcpy
 		bess_pkt->set_nb_segs(1);	//TODO: handle pkt_len > bess::Packet capacity.
 		pkts[recv_cnt++] = bess_pkt;
 	}
@@ -106,7 +107,8 @@ int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 		bess::Packet* sbuf = pkts[sent++];
 		int pkt_len = sbuf->total_len();
 		// TODO: alloc all buf at once?
-		uint8_t* tx_buf = tx_pipe->AllocateBuf(pkt_len);
+		uint8_t* tx_buf = tx_pipe->AllocateBuf(pkt_len);	//TODO: alloc zero
+		
 		GatherData(tx_buf, sbuf);
 		tx_pipe->SendAndFree(pkt_len);
 	}
