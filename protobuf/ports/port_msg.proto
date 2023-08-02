@@ -78,3 +78,8 @@ message VPortArg {
   bool loopback = 8;
   repeated string ip_addrs = 9;
 }
+
+
+message ENSOPortArg {
+  uint32 base_ip_addr = 1;
+}

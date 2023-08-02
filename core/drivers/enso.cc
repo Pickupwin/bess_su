@@ -12,57 +12,58 @@ const uint32_t kProtocol = 0x11;
 
 CommandResponse ENSOPort::Init(const bess::pb::ENSOPortArg &arg) {
 	
-	// TODO: retrive core_id BaseIp from Arg
+	// TODO: retrive core_id & BaseIp from Arg
 	uint32_t core_id = 0;
-	uint32_t BaseIpAddress = kBaseIpAddress;
+	uint32_t BaseIpAddress = arg.base_ip_addr();
+	if (BaseIpAddress == 0){
+		BaseIpAddress = kBaseIpAddress;
+	}
 	
 	int num_txq = num_queues[PACKET_DIR_OUT];
 	int num_rxq = num_queues[PACKET_DIR_INC];
 	
 	if(num_txq<0 || num_rxq<0){
-		//TODO: err handle.
+		return CommandFailure(EINVAL, "Invalid number of RX/TX queues");
 	}
 	
-	// std::unique_ptr<Device> dev;
-	
-	// TODO: what is core_id?
-	dev = Device::Create(nb_queues, core_id);
-	if(!dev){
-		//TODO: err handle.
+	// Setup class member: std::unique_ptr<Device> dev_;
+	dev_ = Device::Create(nb_queues, core_id);
+	if(!dev_){
+		return CommandFailure(ENODEV, "Device creation failed");
 	}
 	
-	// std::vector<RxPipe*> rx_pipes;
+	// Setup class member: std::vector<RxPipe*> rx_pipes_;
 	for(int i=0;i<num_rxq;++i){
-		RxPipe* rx_pipe = dev->AllocateRxPipe();
+		RxPipe* rx_pipe = dev_->AllocateRxPipe();
 		if(!rx_pipe){
-			//TODO: err handle.
+			return CommandFailure(ENODEV, "RxPipe creation failed");
 		}
 		uint32_t dst_ip = BaseIpAddress + i;
 		rx_pipe->Bind(kDstPort, 0, dst_ip, 0, kProtocol);
-		rx_pipes.push_back(rx_pipe);
+		rx_pipes_.push_back(rx_pipe);
 	}
 	
-	// std::vector<TxPipe*> tx_pipes;
+	// Setup class member: std::vector<TxPipe*> tx_pipes_;
 	for(int i=0;i<num_txq;++i){
-		TxPipe* tx_pipe = dev->AllocateTxPipe();
+		TxPipe* tx_pipe = dev_->AllocateTxPipe();
 		if(!tx_pipe){
-			//TODO: err handle.
+			return CommandFailure(ENODEV, "TxPipe creation failed");
 			
 		}
-		tx_pipes.push_back(tx_pipe);
+		tx_pipes_.push_back(tx_pipe);
 	}
 	
 	
 }
 
 void ENSOPort::DeInit() {
-	// TODO: what to dealloc?
+	// Nothing to dealloc.
 }
 
 int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
-	// TODO: assert qid < #rx_pipes;
-	auto& rx_pipe = rx_pipes[qid];
-	auto batch = rx_pipe->RecvPkts(cnt);	//TODO: shall it block?
+	// TODO: assert qid < #rx_pipes_;
+	auto& rx_pipe = rx_pipes_[qid];
+	auto batch = rx_pipe->RecvPkts(cnt);	//non-blocking
 	
 	if(batch.available_bytes() == 0) {
 		return 0;
@@ -75,7 +76,7 @@ int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 		// TODO: alloc bess pkts one by one can be slow;
 		bess::Packet* bess_pkt = current_worker.packet_pool()->Alloc();
 		if(!bess_pkt){
-			// TODO: err handle
+			break;
 		}
 		bess::utils::CopyInlined(bess_pkt->append(pkt_len), enso_pkt, pkt_len, true);
 		bess_pkt->set_nb_segs(1);	//TODO: handle pkt_len > bess::Packet capacity.
@@ -96,8 +97,8 @@ static void GatherData(u_char * data, bess::Packet* pkt) {
 }
 
 int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
-	// TODO: assert qid < #tx_pipes;
-	auto& tx_pipe = tx_pipes[qid];
+	// TODO: assert qid < #tx_pipes_;
+	auto& tx_pipe = tx_pipes_[qid];
 	
 	int sent = 0;
 	

@@ -1,7 +1,11 @@
+#ifndef BESS_DRIVERS_ENSO_H
+#define BESS_DRIVERS_ENSO_H
+
 #include "../port.h"
 
 
-// TODO: include Enso headers.
+#include <enso/helpers.h>
+#include <enso/pipe.h>
 
 
 
@@ -18,8 +22,6 @@ class ENSOPort final : public Port {
           dev(nullptr),
           rx_pipes(),
           tx_pipes() {}
-    
-        // TODO: where to define class Arg?
         CommandResponse Init(const bess::pb::ENSOPortArg &arg);
         
         void DeInit() override;
@@ -30,10 +32,11 @@ class ENSOPort final : public Port {
     
     private:
         
-        std::unique_ptr<Device> dev;
-        std::vector<RxPipe*> rx_pipes;
-        std::vector<TxPipe*> tx_pipes;
-        // TODO: Enso basis.
+        std::unique_ptr<Device> dev_;
+        std::vector<RxPipe*> rx_pipes_;
+        std::vector<TxPipe*> tx_pipes_;
 
 
 }
+
+#endif  // BESS_DRIVERS_ENSO_H
