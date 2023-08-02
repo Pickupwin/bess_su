@@ -27,7 +27,7 @@ CommandResponse ENSOPort::Init(const bess::pb::ENSOPortArg &arg) {
 	}
 	
 	// Setup class member: std::unique_ptr<Device> dev_;
-	dev_ = Device::Create(nb_queues, core_id);
+	dev_ = Device::Create(num_rxq, core_id);
 	if(!dev_){
 		return CommandFailure(ENODEV, "Device creation failed");
 	}
@@ -53,7 +53,7 @@ CommandResponse ENSOPort::Init(const bess::pb::ENSOPortArg &arg) {
 		tx_pipes_.push_back(tx_pipe);
 	}
 	
-	
+	return CommandSuccess();
 }
 
 void ENSOPort::DeInit() {

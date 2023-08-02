@@ -19,9 +19,9 @@ class ENSOPort final : public Port {
     public:
     ENSOPort()
         : Port(),
-          dev(nullptr),
-          rx_pipes(),
-          tx_pipes() {}
+          dev_(nullptr),
+          rx_pipes_(),
+          tx_pipes_() {}
         CommandResponse Init(const bess::pb::ENSOPortArg &arg);
         
         void DeInit() override;
@@ -37,6 +37,6 @@ class ENSOPort final : public Port {
         std::vector<TxPipe*> tx_pipes_;
 
 
-}
+};
 
 #endif  // BESS_DRIVERS_ENSO_H
