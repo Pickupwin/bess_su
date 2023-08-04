@@ -73,9 +73,6 @@ int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	if(batch.available_bytes() == 0) {
 		return 0;
 	}
-	LOG(INFO) << "Enso called RecvPkts qid " << (int)(qid) << " cnt " << cnt;
-	
-	LOG(INFO) << "Enso recv bytes " << batch.available_bytes();
 	
 	int recv_cnt = 0;
 	
@@ -93,8 +90,6 @@ int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	
 	rx_pipe->Clear();
 	
-	LOG(INFO) << "Enso recv pkts " << recv_cnt << "/" << cnt;
-	
 	return recv_cnt;
 }
 
@@ -107,7 +102,6 @@ static void GatherData(u_char * data, bess::Packet* pkt) {
 }
 
 int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
-	LOG(INFO) << "Enso called SendPkts qid " << (int)(qid) << " cnt " << cnt;
 	// TODO: assert qid < #tx_pipes_;
 	auto& tx_pipe = tx_pipes_[qid];
 	
@@ -120,12 +114,10 @@ int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 		uint8_t* tx_buf = tx_pipe->AllocateBuf(pkt_len);	//TODO: alloc zero
 		
 		GatherData(tx_buf, sbuf);
-		tx_pipe->SendAndFree(pkt_len);
+		tx_pipe->SendAndFree(((pkt_len+63)>>6)<<6);	// need to be 64-aligned.
 	}
 	
 	bess::Packet::Free(pkts, sent);
-	
-	LOG(INFO) << "Enso send pkts " << sent << "/" << cnt;
 	
 	return sent;
 }
