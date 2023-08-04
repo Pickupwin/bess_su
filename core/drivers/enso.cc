@@ -54,11 +54,15 @@ CommandResponse ENSOPort::Init(const bess::pb::ENSOPortArg &arg) {
 		tx_pipes_.push_back(tx_pipe);
 	}
 	
+	LOG(INFO) << "Enso Init: Core ID " << core_id << ", RXQ " << num_rxq << ", TXQ " << num_txq;
+	
 	return CommandSuccess();
 }
 
 void ENSOPort::DeInit() {
 	// Nothing to dealloc.
+	
+	LOG(INFO) << "Enso DeInit";
 }
 
 int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
@@ -69,6 +73,9 @@ int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	if(batch.available_bytes() == 0) {
 		return 0;
 	}
+	LOG(INFO) << "Enso called RecvPkts qid " << (int)(qid) << " cnt " << cnt;
+	
+	LOG(INFO) << "Enso recv bytes " << batch.available_bytes();
 	
 	int recv_cnt = 0;
 	
@@ -86,6 +93,8 @@ int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	
 	rx_pipe->Clear();
 	
+	LOG(INFO) << "Enso recv pkts " << recv_cnt << "/" << cnt;
+	
 	return recv_cnt;
 }
 
@@ -98,6 +107,7 @@ static void GatherData(u_char * data, bess::Packet* pkt) {
 }
 
 int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
+	LOG(INFO) << "Enso called SendPkts qid " << (int)(qid) << " cnt " << cnt;
 	// TODO: assert qid < #tx_pipes_;
 	auto& tx_pipe = tx_pipes_[qid];
 	
@@ -115,6 +125,10 @@ int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	
 	bess::Packet::Free(pkts, sent);
 	
+	LOG(INFO) << "Enso send pkts " << sent << "/" << cnt;
+	
 	return sent;
 }
 
+
+ADD_DRIVER(ENSOPort, "enso_port", "Enso driver")
