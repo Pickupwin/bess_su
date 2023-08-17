@@ -1,0 +1,6 @@
+
+myport::PMDPort(port_id=0, num_inc_q=2, num_out_q=2)
+nat::NAT(ext_addrs=[{'ext_addr': '192.168.0.1'}, {'ext_addr': '192.168.0.2'}])
+input0::QueueInc(port=myport, qid=0) -> 0:nat:1 -> output1::QueueOut(port=myport, qid=1)
+input1::QueueInc(port=myport, qid=1) -> 1:nat:0 -> output0::QueueOut(port=myport, qid=0)
+

@@ -65,6 +65,7 @@ void ENSOPort::DeInit() {
 	LOG(INFO) << "Enso DeInit";
 }
 
+// RecvPkts approach 1
 int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	// TODO: assert qid < #rx_pipes_;
 	auto& rx_pipe = rx_pipes_[qid];
@@ -93,6 +94,49 @@ int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	return recv_cnt;
 }
 
+/*
+// RecvPkts approach 2
+int ENSOPort::RecvPackets(queue_t qid, bess::Packet **pkts, int cnt) {
+	// TODO: assert qid < #rx_pipes_;
+	auto& rx_pipe = rx_pipes_[qid];
+	auto peekbatch = rx_pipe->PeekPkts(cnt);	//non-blocking
+	
+	if(peekbatch.available_bytes() == 0) {
+		return 0;
+	}
+	
+	int recv_cnt = 0;
+	
+	for([[maybe_unused]] auto enso_pkt : peekbatch) {
+		++recv_cnt;
+	}
+	
+	bool abulk = current_worker.packet_pool()->AllocBulk(pkts, recv_cnt);
+	
+	if(!abulk){
+		LOG(WARNING) << "Failed bulk allocation, discarding pkts.";
+		// rx_pipe->Clear();
+		return 0;
+	}
+	
+	auto batch = rx_pipe->RecvPkts(recv_cnt);
+	
+	int cur_id = 0;
+	
+	for(auto enso_pkt : batch) {
+		bess::Packet* bess_pkt = pkts[cur_id++];
+		uint16_t pkt_len = enso::get_pkt_len(enso_pkt);
+		bess::utils::CopyInlined(bess_pkt->append(pkt_len), enso_pkt, pkt_len, true);
+		bess_pkt->set_nb_segs(1);
+	}
+	
+	rx_pipe->Clear();
+	
+	
+	return recv_cnt;
+}
+*/
+
 static void GatherData(u_char * data, bess::Packet* pkt) {
 	while(pkt) {
 		bess::utils::CopyInlined(data, pkt->head_data(), pkt->head_len());
@@ -101,6 +145,8 @@ static void GatherData(u_char * data, bess::Packet* pkt) {
 	}
 }
 
+/*
+// SendPkts approach 1
 int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	// TODO: assert qid < #tx_pipes_;
 	auto& tx_pipe = tx_pipes_[qid];
@@ -121,6 +167,38 @@ int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
 	
 	return sent;
 }
+*/
 
+// SendPkts approach 2
+int ENSOPort::SendPackets(queue_t qid, bess::Packet **pkts, int cnt) {
+	auto& tx_pipe = tx_pipes_[qid];
+	
+	uint8_t *tx_buf = tx_pipe->AllocateBuf(0);
+	uint32_t tx_buf_size = tx_pipe->capacity();
+	uint32_t batch_len = 0;
+	
+	// LOG(INFO) << "Capacity: " << tx_buf_size;
+	
+	int sent = 0;
+	while(sent<cnt) {
+		bess::Packet *sbuf = pkts[sent];
+		int pkt_len = sbuf->total_len();
+		// LOG(INFO) << "(" << sent << "/" << cnt << ") tx_buf_size " << tx_buf_size << " pkt_len " << pkt_len;
+		if(tx_buf_size<(uint32_t)(pkt_len))	break;
+		GatherData(tx_buf, sbuf);
+		pkt_len = ((pkt_len+63)>>6)<<6;
+		tx_buf += pkt_len;
+		tx_buf_size -= pkt_len;
+		batch_len += pkt_len;
+		++sent;
+	}
+	
+	tx_pipe->SendAndFree(batch_len);	// need to be 64-aligned.
+	
+	// bess::Packet::Free(pkts, sent);
+	bess::Packet::Free(pkts, cnt);
+	
+	return sent;
+}
 
 ADD_DRIVER(ENSOPort, "enso_port", "Enso driver")

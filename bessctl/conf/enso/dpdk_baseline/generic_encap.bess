@@ -1,0 +1,16 @@
+myport::PMDPort(port_id=0, num_inc_q=2, num_out_q=2)
+
+input0::QueueInc(port=myport, qid=0) \
+        -> SetMetadata(attrs=[{'name': 'ether_type', 'size': 2, 'value_int': 0x9876}]) \
+        -> GenericEncap(fields=[ \
+            {'size': 6, 'value': {'value_int': 0x020000000001}},
+            {'size': 6, 'value': {'value_int': 0x0619deadbeef}},
+            {'size': 2, 'attribute': 'ether_type'}]) \
+        -> output1::QueueOut(port=myport, qid=1)
+input1::QueueInc(port=myport, qid=1) \
+        -> SetMetadata(attrs=[{'name': 'ether_type', 'size': 2, 'value_int': 0x9876}]) \
+        -> GenericEncap(fields=[ \
+            {'size': 6, 'value': {'value_int': 0x020000000002}},
+            {'size': 6, 'value': {'value_int': 0x0719deadbeef}},
+            {'size': 2, 'attribute': 'ether_type'}]) \
+        -> output0::QueueOut(port=myport, qid=0)
