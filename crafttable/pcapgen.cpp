@@ -77,7 +77,7 @@ int main(int argc, char const* argv[]) {
   pkt_hdr.ts = ts;
 
   uint32_t src_ip = ip(192, 168, 0, 0);
-  uint32_t dst_ip = ip(192, 168, 0, 0);
+  uint32_t dst_ip = ip(172, 16, 0, 0);
 
   uint32_t mss =
       pkt_size - sizeof(*l2_hdr) - sizeof(*l3_hdr) - sizeof(*l4_hdr) - 4;
@@ -96,7 +96,7 @@ int main(int argc, char const* argv[]) {
       pkt_hdr.caplen = pkt_hdr.len;
 
       l4_hdr->dest = htons(80);
-      l4_hdr->source = htons(8080);
+      l4_hdr->source = htons(80);
       l4_hdr->len = htons(sizeof(*l4_hdr) + mss);
 
       ++(ts.tv_usec);
@@ -108,7 +108,40 @@ int main(int argc, char const* argv[]) {
       }
     }
   }
+  
+   src_ip = ip(172, 16, 0, 0);
+   dst_ip = ip(172, 15, 0, 0);
 
+   mss =
+      pkt_size - sizeof(*l2_hdr) - sizeof(*l3_hdr) - sizeof(*l4_hdr) - 4;
+
+  
+  nb_pkts = 0;
+
+  while (nb_pkts < total_nb_packets) {
+    for (int i = 0; i < nb_dst; ++i) {
+      l3_hdr->daddr = htonl(dst_ip + (uint32_t)i);
+      uint32_t src_offset = i / (nb_dst / nb_src);
+      l3_hdr->saddr = htonl(src_ip + src_offset);
+
+      l3_hdr->tot_len = htons(mss + sizeof(*l3_hdr) + sizeof(*l4_hdr));
+
+      pkt_hdr.len = sizeof(*l2_hdr) + sizeof(*l3_hdr) + sizeof(*l4_hdr) + mss;
+      pkt_hdr.caplen = pkt_hdr.len;
+
+      l4_hdr->dest = htons(80);
+      l4_hdr->source = htons(80);
+      l4_hdr->len = htons(sizeof(*l4_hdr) + mss);
+
+      ++(ts.tv_usec);
+      pcap_dump((u_char*)pdumper, &pkt_hdr, pkt);
+
+      ++nb_pkts;
+      if (nb_pkts >= total_nb_packets) {
+        break;
+      }
+    }
+  }
   pcap_close(pd);
   pcap_dump_close(pdumper);
 

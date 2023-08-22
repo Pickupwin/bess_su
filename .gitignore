@@ -10,6 +10,9 @@ core/kmod/.cache.mk
 *.retry
 *.cache.mk
 
+crafttable
+bessctl/conf/enso
+
 # Vagrant stores temporary files in env/.vagrant
 env/.vagrant
 

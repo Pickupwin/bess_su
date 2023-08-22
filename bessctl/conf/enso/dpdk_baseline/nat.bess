@@ -1,6 +1,11 @@
 
-myport::PMDPort(port_id=0, num_inc_q=2, num_out_q=2)
-nat::NAT(ext_addrs=[{'ext_addr': '192.168.0.1'}, {'ext_addr': '192.168.0.2'}])
-input0::QueueInc(port=myport, qid=0) -> 0:nat:1 -> output1::QueueOut(port=myport, qid=1)
-input1::QueueInc(port=myport, qid=1) -> 1:nat:0 -> output0::QueueOut(port=myport, qid=0)
+myport::PMDPort(port_id=1, num_inc_q=2, num_out_q=2)
+nat::NAT(ext_addrs=[{'ext_addr': '172.15.0.0', 'port_ranges': [{'begin':80,'end':81}]}, {'ext_addr': '172.15.0.1', 'port_ranges': [{'begin':80,'end':81}]}])
+ipfwd::IPLookup()
+ipfwd.add(prefix='172.15.0.0', prefix_len=16, gate=1)
+ipfwd.add(prefix='0.0.0.0', prefix_len=0, gate=2)
+input0::QueueInc(port=myport, qid=0) -> ipfwd
+ipfwd:1 -> 1:nat:0 -> output1::QueueOut(port=myport, qid=1)
+input1::QueueInc(port=myport, qid=1) -> ipfwd
+ipfwd:2 -> 0:nat:1 -> output0::QueueOut(port=myport, qid=0)
 
