@@ -11,6 +11,7 @@
 
 
 using enso::Device;
+using enso::RxTxPipe;
 using enso::RxPipe;
 using enso::TxPipe;
 
@@ -19,7 +20,9 @@ class ENSOPort final : public Port {
     public:
     ENSOPort()
         : Port(),
+          zero_copy_(false),
           dev_(nullptr),
+          rx_tx_pipes_(),
           rx_pipes_(),
           tx_pipes_() {}
         CommandResponse Init(const bess::pb::ENSOPortArg &arg);
@@ -32,7 +35,9 @@ class ENSOPort final : public Port {
     
     private:
         
+        bool zero_copy_;
         std::unique_ptr<Device> dev_;
+        std::vector<RxTxPipe*> rx_tx_pipes_;
         std::vector<RxPipe*> rx_pipes_;
         std::vector<TxPipe*> tx_pipes_;
 

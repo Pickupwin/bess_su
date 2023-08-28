@@ -81,5 +81,5 @@ message VPortArg {
 
 
 message ENSOPortArg {
-  uint32 base_ip_addr = 1;
+  bool zero_copy = 1;
 }
